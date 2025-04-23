@@ -1,9 +1,12 @@
-﻿using UnityEngine;
+﻿using System;
+using System.Collections.Generic;
+using Unity.VisualScripting;
+using UnityEngine;
 using UnityEngine.UI;
 
 namespace Tanks.Complete
 {
-    public class TankHealth : MonoBehaviour, IDamageable
+    public class TankHealth : MonoBehaviour, IDamage
     {
         public float m_StartingHealth = 100f;               // The amount of health each tank starts with.
         public Slider m_Slider;                             // The slider to represent how much health the tank currently has.
@@ -12,7 +15,6 @@ namespace Tanks.Complete
         public Color m_ZeroHealthColor = Color.red;      // The color the health bar will be when on no health.
         public GameObject m_ExplosionPrefab;                // A prefab that will be instantiated in Awake, then used whenever the tank dies.
         [HideInInspector] public bool m_HasShield;          // Has the tank picked up a shield power up?
-        
         
         private AudioSource m_ExplosionAudio;               // The audio source to play when the tank explodes.
         private ParticleSystem m_ExplosionParticles;        // The particle system the will play when the tank is destroyed.
@@ -55,8 +57,8 @@ namespace Tanks.Complete
             SetHealthUI();
         }
 
-
-        public void TakeDamage (float amount)
+        //void IDamage.TakeDamage(float amount)     // EXPLICITE
+        public void TakeDamage (float amount)       // IMPLICITE
         {
             // Check if the tank is not invincible
             if (!m_IsInvincible)
