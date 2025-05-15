@@ -2,10 +2,11 @@ using System;
 using System.Collections;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Pool;
 using UnityEngine.UI;
 using Random = UnityEngine.Random;
 
-public class Spawner : MonoBehaviour
+public class SpawnerOP : MonoBehaviour
 {
     [SerializeField] TextMeshProUGUI _buttontxt;
     [SerializeField] Button _toggleButton;
@@ -15,10 +16,10 @@ public class Spawner : MonoBehaviour
     [SerializeField] float _randomSphereRadius;
     [SerializeField] Transform _center;
     [SerializeField] bool _log;
-    
-    
+        
     bool _isOn;
     Coroutine _routine;
+    ObjectPool<GameObject> _pool;
     
     void UpdateTxt() => _buttontxt.text = _isOn ? "ON" : "OFF";
 
@@ -33,14 +34,37 @@ public class Spawner : MonoBehaviour
 
     void Start()
     {
+        _pool = new ObjectPool<GameObject>(Create, Get,Release,Dest);
+        
         _toggleButton.onClick.AddListener(Toggle);
         UpdateTxt();
     }
-
     void OnDestroy()
     {
         _toggleButton.onClick.RemoveListener(Toggle);
     }
+    GameObject Create()
+    {
+        if(_log) Debug.Log("Create");
+        return Instantiate(_prefab, _center.position + (Random.insideUnitSphere * _randomSphereRadius),
+            Quaternion.identity);
+    }
+    void Get(GameObject o)
+    {
+        if(_log) Debug.Log("Get");
+        o.SetActive(true);
+    }
+    void Release(GameObject o)
+    {
+        if(_log) Debug.Log("Release");
+        o.SetActive(false);
+    }
+    void Dest(GameObject o)
+    {
+        if(_log) Debug.Log("Destroy");
+        Destroy(o);
+    }
+    
 
     public void Toggle()
     {
@@ -58,16 +82,16 @@ public class Spawner : MonoBehaviour
             _routine = null;
         }
 
-
         IEnumerator SpawnRoutine()
         {
             var w = new WaitForSeconds(_interval);
             while (true)
             {
                 var randomPoint = _center.position + (Random.insideUnitSphere * _randomSphereRadius);
-                var go = Instantiate(_prefab, randomPoint, Quaternion.identity);
-                if(_log) Debug.Log("Create");
-
+                var go = _pool.Get();
+                go.transform.position = randomPoint;
+                go.GetComponent<Rigidbody>().linearVelocity = Vector3.zero;
+                
                 if (Mathf.Approximately(0f, _destroyDelay) == false && _destroyDelay > 0f)
                 {
                     StartCoroutine(WaitAndRelease(go));
@@ -79,8 +103,7 @@ public class Spawner : MonoBehaviour
         IEnumerator WaitAndRelease(GameObject go)
         {
             yield return new WaitForSeconds(_destroyDelay);
-            if(_log) Debug.Log("Destroy");
-            Destroy(go);
+            _pool.Release(go);
         }
     }
 }
